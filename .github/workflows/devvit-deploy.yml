@@ -1,0 +1,51 @@
+name: Devvit Deploy
+
+# Triggered on every push to main, or manually from the Actions tab.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version label (optional)'
+        required: false
+
+concurrency:
+  group: devvit-deploy-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    name: devvit-pipeline
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: devvit login
+        env:
+          DEVVIT_TOKEN: ${{ secrets.DEVVIT_TOKEN }}
+        run: |
+          # Non-interactive login using a Reddit-issued Devvit token.
+          npx -y devvit@latest login --token "$DEVVIT_TOKEN"
+
+      - name: devvit bundle
+        run: npx -y devvit@latest bundle
+
+      - name: devvit upload
+        run: npx -y devvit@latest upload --copyPaste
+
+      - name: devvit publish
+        env:
+          TARGET_SUBREDDIT: ${{ secrets.TARGET_SUBREDDIT }}
+        run: npx -y devvit@latest install "$TARGET_SUBREDDIT"
