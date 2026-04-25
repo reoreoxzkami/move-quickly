@@ -4,13 +4,20 @@
   "private": true,
   "type": "module",
   "main": "src/main.tsx",
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
-    "devvit:bundle": "devvit bundle"
+    "build": "devvit bundle",
+    "bundle": "devvit bundle",
+    "upload": "devvit upload --copyPaste",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@devvit/public-api": "latest"
   },
   "devDependencies": {
+    "@types/node": "latest",
     "devvit": "latest",
     "typescript": "latest"
   }
