@@ -27,7 +27,9 @@ Devvit.addCustomPostType({
     const [enemies, setEnemies] = useState<{ id: number, x: number; y: number; speed: number }[]>([]);
 
     // Tick logic for the game loop (runs every 100ms)
-    const gameLoop = useInterval(() => {
+    const timer = useInterval(() => {
+      if (gameState !== 'playing') return;
+
       setScore((s) => s + 1);
 
       setEnemies((prevEnemies) => {
@@ -47,19 +49,17 @@ Devvit.addCustomPostType({
         }
 
         // Simple Collision Detection
-        // Width of enemy is ~10% of board, height covers the player row
+        // Using current playerX from the setEnemies closure is tricky in functional updates, 
+        // but since playerX is updated via buttons, it's captured in the render cycle.
         const hit = movedEnemies.some(
           (e) => Math.abs(e.x - playerX) < 10 && e.y > 80 && e.y < 95
         );
 
         if (hit) {
           setGameState('gameover');
-          setScore((currentScore) => {
-            if (currentScore > highScore) setHighScore(currentScore);
-            return currentScore;
-          });
+          timer.stop();
+          if (score > highScore) setHighScore(score);
           context.ui.showToast({ text: 'Game Over!', appearance: 'neutral' });
-          gameLoop.stop();
         }
 
         return movedEnemies;
@@ -69,9 +69,9 @@ Devvit.addCustomPostType({
     const startGame = () => {
       setEnemies([]);
       setScore(0);
-      setPlayerX(45);
+      setPlayerX(50);
       setGameState('playing');
-      gameLoop.start();
+      timer.start();
     };
 
     const moveLeft = () => setPlayerX((p) => Math.max(0, p - 10));
@@ -95,7 +95,7 @@ Devvit.addCustomPostType({
               <vstack
                 key={enemy.id.toString()}
                 position={{ left: enemy.x, top: enemy.y }}
-                width="31px"
+                width="30px"
                 height="30px"
                 backgroundColor="#FF4500"
                 cornerRadius="small"
@@ -111,21 +111,21 @@ Devvit.addCustomPostType({
               cornerRadius="full"
               alignment="center middle"
             >
-               <icon name="bot" color="white" />
+               <icon name="bot" color="white" size="small" />
             </vstack>
           </zstack>
 
           <spacer size="medium" />
 
           {/* Controls - The main interaction via "Mouse clicks" on these areas */}
-          <hstack width="100%" height="64px" gap="medium">
+          <hstack width="100%" height="60px" gap="medium">
             <button
               grow
               appearance="secondary"
               onPress={moveLeft}
               disabled={gameState !== 'playing'}
             >
-              ← Left
+              ← Move Left
             </button>
             <button
               grow
@@ -133,7 +133,7 @@ Devvit.addCustomPostType({
               onPress={moveRight}
               disabled={gameState !== 'playing'}
             >
-              Right →
+              Move Right →
             </button>
           </hstack>
         </vstack>
