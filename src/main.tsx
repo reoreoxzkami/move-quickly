@@ -27,7 +27,7 @@ Devvit.addCustomPostType({
     const [enemies, setEnemies] = useState<{ id: number, x: number; y: number; speed: number }[]>([]);
 
     // Tick logic for the game loop (runs every 100ms)
-    useInterval(() => {
+    const gameInterval = useInterval(() => {
       if (gameState !== 'playing') return;
 
       setScore((s) => s + 1);
@@ -41,7 +41,7 @@ Devvit.addCustomPostType({
         // Spawn new enemy randomly
         if (Math.random() > 0.8) {
           movedEnemies.push({
-            id: Date.now(),
+            id: Date.now() + Math.random(),
             x: Math.random() * 90,
             y: 0,
             speed: 5 + Math.random() * 5,
@@ -49,6 +49,7 @@ Devvit.addCustomPostType({
         }
 
         // Simple Collision Detection
+        // Using playerX + width padding to check proximity
         const hit = movedEnemies.some(
           (e) => Math.abs(e.x - playerX) < 10 && e.y > 80 && e.y < 95
         );
@@ -57,17 +58,19 @@ Devvit.addCustomPostType({
           setGameState('gameover');
           if (score > highScore) setHighScore(score);
           context.ui.showToast({ text: 'Game Over!', appearance: 'neutral' });
+          gameInterval.stop();
         }
 
         return movedEnemies;
       });
-    }, 100).start();
+    }, 100);
 
     const startGame = () => {
       setEnemies([]);
       setScore(0);
       setPlayerX(50);
       setGameState('playing');
+      gameInterval.start();
     };
 
     const moveLeft = () => setPlayerX((p) => Math.max(0, p - 10));
@@ -90,9 +93,9 @@ Devvit.addCustomPostType({
             {enemies.map((enemy) => (
               <vstack
                 key={enemy.id.toString()}
-                position={{ left: `${enemy.x}%`, top: `${enemy.y}%` }}
-                width="30px"
-                height="30px"
+                position={{ left: enemy.x, top: enemy.y }}
+                width={30}
+                height={30}
                 backgroundColor="#FF4500"
                 cornerRadius="small"
               />
@@ -100,9 +103,9 @@ Devvit.addCustomPostType({
 
             {/* Render Player */}
             <vstack
-              position={{ left: `${playerX}%`, top: '85%' }}
-              width="35px"
-              height="35px"
+              position={{ left: playerX, top: 85 }}
+              width={35}
+              height={35}
               backgroundColor="#0079D3"
               cornerRadius="full"
               alignment="center middle"
