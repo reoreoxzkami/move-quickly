@@ -30,9 +30,9 @@ jobs:
 
       - name: Verify Devvit scaffold
         run: |
-          test -f package.json
-          test -f devvit.yaml
-          test -f src/main.tsx
+          test -s package.json
+          test -s devvit.yaml
+          test -s src/main.tsx
 
       - name: Install dependencies
         run: npm install
@@ -52,18 +52,36 @@ jobs:
       - name: devvit bundle
         env:
           DEVVIT_TOKEN: ${{ secrets.DEVVIT_TOKEN }}
-        run: npx -y devvit@latest bundle
+        run: |
+          if [ -z "$DEVVIT_TOKEN" ]; then
+            echo "::error::DEVVIT_TOKEN secret is not set"
+            exit 1
+          fi
+          npx -y devvit@latest bundle
 
       - name: devvit upload
         env:
           DEVVIT_TOKEN: ${{ secrets.DEVVIT_TOKEN }}
-        run: npx -y devvit@latest upload --copyPaste
+        run: |
+          if [ -z "$DEVVIT_TOKEN" ]; then
+            echo "::error::DEVVIT_TOKEN secret is not set"
+            exit 1
+          fi
+          npx -y devvit@latest upload --copyPaste
 
       - name: devvit publish
         env:
           DEVVIT_TOKEN: ${{ secrets.DEVVIT_TOKEN }}
           TARGET_SUBREDDIT: ${{ secrets.TARGET_SUBREDDIT }}
         run: |
+          if [ -z "$DEVVIT_TOKEN" ]; then
+            echo "::error::DEVVIT_TOKEN secret is not set"
+            exit 1
+          fi
+          if [ -z "$TARGET_SUBREDDIT" ]; then
+            echo "::error::TARGET_SUBREDDIT secret is not set"
+            exit 1
+          fi
           # Strip any leading "r/" the user may have included in the secret.
           SUB="${TARGET_SUBREDDIT#r/}"
           npx -y devvit@latest install "r/$SUB"
