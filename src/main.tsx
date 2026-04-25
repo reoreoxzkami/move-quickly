@@ -37,7 +37,8 @@ Devvit.addCustomPostType({
           // Collision check: when wall is at player area (roughly y=80 to 90)
           if (newY >= 80 && newY <= 90) {
             const gapEnd = wall.gapStart + 30;
-            if (playerPos < wall.gapStart || playerPos > gapEnd) {
+            // Player is ~5-10% wide relative to the field
+            if (playerPos < wall.gapStart || playerPos > gapEnd - 5) {
               collisionDetected = true;
             }
           }
@@ -133,11 +134,11 @@ Devvit.addCustomPostType({
 
           {gameState === 'playing' && (
             <vstack width="100%" height="100%" alignment="bottom center">
-              <hstack width="100%" gap="large" alignment="center middle" padding="medium">
+              <hstack width="100%" gap="large" alignment="center middle" padding="medium" grow>
                 <button width="45%" onPress={moveLeft} icon="caret-left" appearance="secondary">LEFT</button>
                 <button width="45%" onPress={moveRight} icon="caret-right" appearance="secondary">RIGHT</button>
               </hstack>
-              <hstack width="100%" alignment="center middle" padding="small">
+              <hstack width="100%" alignment="center middle" padding="small" backgroundColor="rgba(0,0,0,0.5)">
                 <text weight="bold" color="white">SCORE: {score}</text>
               </hstack>
             </vstack>
