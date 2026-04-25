@@ -1,129 +1,153 @@
-import { Devvit, useState } from '@devvit/public-api';
+import { Devvit, useState, useInterval } from '@devvit/public-api';
 
 Devvit.configure({
   redditAPI: true,
   redis: true,
 });
 
-// A simple "Avoid the Walls" mouse-only game
+// A simple "Avoid the Walls" game playable with just a cursor/tap
 Devvit.addCustomPostType({
-  name: 'Mouse Cursor Challenge',
+  name: 'CursorGame',
   height: 'tall',
   render: (context) => {
-    const [gameState, setGameState] = useState<'start' | 'playing' | 'gameover' | 'win'>('start');
-    const [level, setLevel] = useState(1);
+    // Game State
+    const [score, setScore] = useState(0);
+    const [highScore, setHighScore] = useState(0);
+    const [gameState, setGameState] = useState<'start' | 'playing' | 'gameover'>('start');
+    
+    // Player horizontal position (percentage 0-100)
+    const [playerPos, setPlayerPos] = useState(50);
+    
+    // Wall positions: array of { id, y (0-100), gapStart (0-70) }
+    const [walls, setWalls] = useState(() => [
+      { id: 0, y: 0, gapStart: 40 },
+      { id: 1, y: -40, gapStart: 20 },
+      { id: 2, y: -80, gapStart: 50 },
+    ]);
 
-    // Levels definitions (obstacle positions)
-    const levels = [
-      { walls: [{ top: 30, left: 40, w: 20, h: 40 }] },
-      { walls: [
-        { top: 0, left: 20, w: 10, h: 70 },
-        { top: 30, left: 70, w: 10, h: 70 }
-      ]},
-      { walls: [
-        { top: 20, left: 20, w: 60, h: 10 },
-        { top: 70, left: 20, w: 60, h: 10 },
-        { top: 20, left: 20, w: 10, h: 60 },
-      ]}
-    ];
+    // Game loop running every 100ms
+    useInterval(() => {
+      if (gameState !== 'playing') return;
 
-    const currentLevel = levels[level - 1] || levels[0];
+      setWalls((prevWalls) => {
+        let collision = false;
+        const newWalls = prevWalls.map((wall) => {
+          let newY = wall.y + 5; // Gravity/Velocity
+          
+          // Collision check: when wall is at player area (roughly y=80 to 90)
+          if (newY >= 80 && newY <= 90) {
+            const gapEnd = wall.gapStart + 30;
+            if (playerPos < wall.gapStart || playerPos > gapEnd) {
+              collision = true;
+            }
+          }
 
-    const resetGame = () => {
-      setLevel(1);
+          // Reset wall to top and randomize gap
+          if (newY > 100) {
+            setScore((s) => s + 1);
+            return {
+              id: wall.id,
+              y: 0,
+              gapStart: Math.floor(Math.random() * 70),
+            };
+          }
+          return { ...wall, y: newY };
+        });
+
+        if (collision) {
+          setGameState('gameover');
+          if (score > highScore) setHighScore(score);
+          context.ui.showToast({ text: 'Game Over!', appearance: 'neutral' });
+        }
+
+        return newWalls;
+      });
+    }, 100).start();
+
+    const moveLeft = () => setPlayerPos((p) => Math.max(0, p - 10));
+    const moveRight = () => setPlayerPos((p) => Math.min(90, p + 10));
+    
+    const startGame = () => {
+      setScore(0);
+      setPlayerPos(50);
+      setWalls([
+        { id: 0, y: 0, gapStart: 40 },
+        { id: 1, y: -40, gapStart: 20 },
+        { id: 2, y: -80, gapStart: 50 },
+      ]);
       setGameState('playing');
     };
 
-    const handleWin = () => {
-      if (level < levels.length) {
-        setLevel((prev) => prev + 1);
-      } else {
-        setGameState('win');
-      }
-    };
-
-    // Start Screen
-    if (gameState === 'start') {
-      return (
-        <vstack height="100%" alignment="center middle" gap="medium">
-          <text size="xlarge" weight="bold">Cursor Challenge</text>
-          <text>Don't touch the dark blocks!</text>
-          <button onPress={() => setGameState('playing')}>Start Game</button>
-        </vstack>
-      );
-    }
-
-    // Game Over Screen
-    if (gameState === 'gameover') {
-      return (
-        <vstack height="100%" alignment="center middle" gap="medium" backgroundColor="#fee2e2">
-          <text color="red" size="xlarge" weight="bold">GAME OVER</text>
-          <button onPress={resetGame}>Try Again</button>
-        </vstack>
-      );
-    }
-
-    // Win Screen
-    if (gameState === 'win') {
-      return (
-        <vstack height="100%" alignment="center middle" gap="medium" backgroundColor="#f0fdf4">
-          <text color="green" size="xlarge" weight="bold">CONGRATULATIONS!</text>
-          <text>You mastered the cursor.</text>
-          <button onPress={resetGame}>Play Again</button>
-        </vstack>
-      );
-    }
-
-    // Main Gameplay
     return (
-      <zstack height="100%" width="100%" backgroundColor="#f8fafc">
-        {/* Background / Safety Area */}
-        <vstack height="100%" width="100%" padding="medium">
-           <hstack width="100%" alignment="middle space-between">
-             <text size="large" weight="bold">Level {level}</text>
-             <text size="small">Navigate to the Green Goal</text>
-           </hstack>
+      <zstack width="100%" height="100%" backgroundColor="#1A1A1B">
+        {/* Game Field */}
+        <vstack width="100%" height="100%" alignment="top center">
+          {walls.map((wall) => (
+            <hstack 
+              key={wall.id.toString()}
+              width="100%" 
+              height="20px" 
+              position="absolute"
+              top={`${wall.y}%` as any}
+            >
+              {/* Left Wall Part */}
+              <hstack width={`${wall.gapStart}%` as any} height="100%" backgroundColor="#FF4500" />
+              {/* Gap */}
+              <spacer width="30%" height="100%" />
+              {/* Right Wall Part */}
+              <hstack grow height="100%" backgroundColor="#FF4500" />
+            </hstack>
+          ))}
         </vstack>
 
-        {/* Walls - If hovered, trigger game over */}
-        {currentLevel.walls.map((wall, index) => (
-          <hstack
-            key={`wall-${index}`}
-            onMouseEnter={() => setGameState('gameover')}
-            backgroundColor="#1e293b"
+        {/* Player Character */}
+        <vstack 
+          width="100%" 
+          height="100%" 
+          alignment="top left" 
+          padding="none"
+        >
+          <hstack 
+            width="32px" 
+            height="32px" 
+            backgroundColor="#0079D3"
+            cornerRadius="full"
             position="absolute"
-            top={`${wall.top}%` as any}
-            left={`${wall.left}%` as any}
-            width={`${wall.w}%` as any}
-            height={`${wall.h}%` as any}
+            top="85%"
+            left={`${playerPos}%` as any}
           />
-        ))}
-
-        {/* Goal Area */}
-        <vstack
-          onMouseEnter={handleWin}
-          backgroundColor="#22c55e"
-          alignment="center middle"
-          position="absolute"
-          bottom={10}
-          right={10}
-          width="64px"
-          height="64px"
-        >
-          <text color="white" weight="bold">GOAL</text>
         </vstack>
 
-        {/* Start Point Marker */}
-        <vstack
-          position="absolute"
-          top={50}
-          left={10}
-          width="50px"
-          height="50px"
-          border="thin"
-          alignment="center middle"
-        >
-           <text size="xsmall">START</text>
+        {/* UI Overlay */}
+        <vstack width="100%" height="100%" alignment="center middle" padding="medium">
+          {gameState === 'start' && (
+            <vstack alignment="center middle" backgroundColor="rgba(0,0,0,0.8)" padding="large" cornerRadius="medium" gap="medium">
+              <text size="xlarge" weight="bold" color="white">CURSOR DODGE</text>
+              <text color="white">Avoid the orange walls!</text>
+              <button appearance="primary" onPress={startGame}>START GAME</button>
+            </vstack>
+          )}
+
+          {gameState === 'playing' && (
+            <vstack width="100%" height="100%" alignment="bottom center">
+              <hstack width="100%" gap="large" alignment="center middle" padding="medium">
+                <button width="45%" onPress={moveLeft} icon="caret-left" appearance="secondary">LEFT</button>
+                <button width="45%" onPress={moveRight} icon="caret-right" appearance="secondary">RIGHT</button>
+              </hstack>
+              <hstack width="100%" alignment="center middle" padding="small">
+                <text weight="bold" color="white">SCORE: {score}</text>
+              </hstack>
+            </vstack>
+          )}
+
+          {gameState === 'gameover' && (
+            <vstack alignment="center middle" backgroundColor="rgba(0,0,0,0.8)" padding="large" cornerRadius="medium" gap="medium">
+              <text size="xlarge" weight="bold" color="red">GAME OVER</text>
+              <text color="white">Score: {score}</text>
+              <text color="white">Best: {highScore}</text>
+              <button appearance="primary" onPress={startGame}>TRY AGAIN</button>
+            </vstack>
+          )}
         </vstack>
       </zstack>
     );
