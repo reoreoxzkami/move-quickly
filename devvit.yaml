@@ -1,2 +1,4 @@
 name: move-quickly
 version: 0.0.1
+blocks:
+  entry: "src/main.tsx"
