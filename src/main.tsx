@@ -7,7 +7,7 @@ Devvit.configure({
 
 /**
  * Click-only "Avoid the Blocks" Game
- * The player controls a circular avatar that follows the mouse/click position.
+ * The player controls a circular avatar that moves via buttons.
  * Goal: Survive as long as possible while dodging falling obstacles.
  */
 
@@ -15,18 +15,18 @@ Devvit.addCustomPostType({
   name: 'AvoidTheBlocks',
   height: 'tall',
   render: (context) => {
-    // Game state: 'start', 'playing', 'gameover'
+    // Game state: 'start' | 'playing' | 'gameover'
     const [gameState, setGameState] = useState<string>('start');
     const [score, setScore] = useState<number>(0);
     const [highScore, setHighScore] = useState<number>(0);
     
-    // Player position (X is 0 to 100)
-    const [playerX, setPlayerX] = useState<number>(50);
+    // Player position (X is 0 to 90)
+    const [playerX, setPlayerX] = useState<number>(45);
     
-    // Enemy positions (simple array of objects)
-    const [enemies, setEnemies] = useState<{ id: string, x: number; y: number; speed: number }[]>([]);
+    // Enemy positions
+    const [enemies, setEnemies] = useState<{ id: string; x: number; y: number; speed: number }[]>([]);
 
-    // Tick logic for the game loop (runs every 100ms)
+    // Tick logic for the game loop
     const timer = useInterval(() => {
       setScore((s) => s + 1);
 
@@ -36,7 +36,7 @@ Devvit.addCustomPostType({
           .map((e) => ({ ...e, y: e.y + e.speed }))
           .filter((e) => e.y < 100);
 
-        // Spawn new enemy randomly (approx 20% chance per tick)
+        // Spawn new enemy randomly
         if (Math.random() > 0.8) {
           movedEnemies.push({
             id: Math.random().toString(36).substring(7),
@@ -46,8 +46,9 @@ Devvit.addCustomPostType({
           });
         }
 
-        // Simple Collision Detection
-        // Since playerX is updated via button states, it is available in this scope during the tick
+        // Collision Detection
+        // Using playerX from state. Note: in Devvit hooks, the state value 
+        // within the functional update of another state represents the value at that render tick.
         const hit = movedEnemies.some(
           (e) => Math.abs(e.x - playerX) < 10 && e.y > 80 && e.y < 95
         );
@@ -55,7 +56,9 @@ Devvit.addCustomPostType({
         if (hit) {
           setGameState('gameover');
           timer.stop();
-          if (score > highScore) setHighScore(score);
+          if (score > highScore) {
+            setHighScore(score);
+          }
           context.ui.showToast({ text: 'Game Over!', appearance: 'neutral' });
         }
 
@@ -66,7 +69,7 @@ Devvit.addCustomPostType({
     const startGame = () => {
       setEnemies([]);
       setScore(0);
-      setPlayerX(50);
+      setPlayerX(45);
       setGameState('playing');
       timer.start();
     };
@@ -92,8 +95,8 @@ Devvit.addCustomPostType({
               <vstack
                 key={enemy.id}
                 position={{ left: enemy.x, top: enemy.y }}
-                width={30}
-                height={30}
+                width="30px"
+                height="30px"
                 backgroundColor="#FF4500"
                 cornerRadius="small"
               />
@@ -102,8 +105,8 @@ Devvit.addCustomPostType({
             {/* Render Player */}
             <vstack
               position={{ left: playerX, top: 85 }}
-              width={35}
-              height={35}
+              width="35px"
+              height="35px"
               backgroundColor="#0079D3"
               cornerRadius="full"
               alignment="center middle"
@@ -115,14 +118,14 @@ Devvit.addCustomPostType({
           <spacer size="medium" />
 
           {/* Controls */}
-          <hstack width="100%" height={60} gap="medium">
+          <hstack width="100%" height="60px" gap="medium">
             <button
               grow
               appearance="secondary"
               onPress={moveLeft}
               disabled={gameState !== 'playing'}
             >
-              ← Move Left
+              ← Left
             </button>
             <button
               grow
@@ -130,7 +133,7 @@ Devvit.addCustomPostType({
               onPress={moveRight}
               disabled={gameState !== 'playing'}
             >
-              Move Right →
+              Right →
             </button>
           </hstack>
         </vstack>
@@ -143,12 +146,12 @@ Devvit.addCustomPostType({
                 {gameState === 'start' ? 'AVOID BLOCKS' : 'GAME OVER'}
               </text>
               {gameState === 'gameover' && (
-                <text size="large" color="#FF4500">Final Score: {score}</text>
+                <text size="large" color="#FF4500">Score: {score}</text>
               )}
               <button appearance="primary" onPress={startGame}>
                 {gameState === 'start' ? 'START GAME' : 'TRY AGAIN'}
               </button>
-              <text size="small" color="#818384">Control by clicking the buttons</text>
+              <text size="small" color="#818384">Dodge the falling orange blocks!</text>
             </vstack>
           </zstack>
         )}
