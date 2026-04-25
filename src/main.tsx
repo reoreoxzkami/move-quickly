@@ -10,20 +10,20 @@ Devvit.addCustomPostType({
   name: 'Mouse Cursor Challenge',
   height: 'tall',
   render: (context) => {
-    const [gameState, setGameState] = useState<'start' | 'playing' | 'gameover' | 'win'>(() => 'start');
-    const [level, setLevel] = useState(() => 1);
+    const [gameState, setGameState] = useState<'start' | 'playing' | 'gameover' | 'win'>('start');
+    const [level, setLevel] = useState(1);
 
     // Levels definitions (obstacle positions)
     const levels = [
-      { goal: "Right", walls: [{ top: '30%', left: '40%', w: '20%', h: '40%' }] },
+      { goal: "Right", walls: [{ top: 30, left: 40, w: 20, h: 40 }] },
       { goal: "Bottom", walls: [
-        { top: '0%', left: '20%', w: '10%', h: '70%' },
-        { top: '30%', left: '70%', w: '10%', h: '70%' }
+        { top: 0, left: 20, w: 10, h: 70 },
+        { top: 30, left: 70, w: 10, h: 70 }
       ]},
       { goal: "Center", walls: [
-        { top: '20%', left: '20%', w: '60%', h: '10%' },
-        { top: '70%', left: '20%', w: '60%', h: '10%' },
-        { top: '20%', left: '20%', w: '10%', h: '60%' },
+        { top: 20, left: 20, w: 60, h: 10 },
+        { top: 70, left: 20, w: 60, h: 10 },
+        { top: 20, left: 20, w: 10, h: 60 },
       ]}
     ];
 
@@ -91,11 +91,11 @@ Devvit.addCustomPostType({
             key={`wall-${index}`}
             onMouseEnter={() => setGameState('gameover')}
             backgroundColor="#1e293b"
-            // Devvit uses string literals or numbers for dimensions; casting to Devvit.Offset
-            top={wall.top as any}
-            left={wall.left as any}
-            width={wall.w as any}
-            height={wall.h as any}
+            position="absolute"
+            top={wall.top}
+            left={wall.left}
+            width={wall.w}
+            height={wall.h}
           />
         ))}
 
@@ -104,19 +104,22 @@ Devvit.addCustomPostType({
           onMouseEnter={handleWin}
           backgroundColor="#22c55e"
           alignment="center middle"
-          // Using absolute position shorthand
-          offset={{ x: 250, y: 400 }} 
-          width={64 as any}
-          height={64 as any}
+          position="absolute"
+          top={80}
+          left={80}
+          width={15}
+          height={15}
         >
-          <text color="white" weight="bold">GOAL</text>
+          <text color="white" weight="bold" size="xsmall">GOAL</text>
         </vstack>
 
         {/* Start Point Marker */}
         <vstack
-          offset={{ x: 10, y: 50 }}
-          width={40 as any}
-          height={40 as any}
+          position="absolute"
+          top={5}
+          left={5}
+          width={10}
+          height={10}
           border="thin"
           alignment="center middle"
         >
