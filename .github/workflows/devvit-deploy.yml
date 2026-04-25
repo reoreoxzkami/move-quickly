@@ -1,14 +1,9 @@
 name: Devvit Deploy
 
-# Triggered on every push to main, or manually from the Actions tab.
 on:
   push:
     branches: [main]
   workflow_dispatch:
-    inputs:
-      version:
-        description: 'Version label (optional)'
-        required: false
 
 concurrency:
   group: devvit-deploy-${{ github.ref }}
@@ -27,6 +22,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
+          cache: npm
 
       - name: Verify Devvit scaffold
         run: |
@@ -35,27 +31,55 @@ jobs:
           test -s src/main.tsx
 
       - name: Install dependencies
-        run: npm install
+        run: |
+          if [ -f package-lock.json ]; then
+            npm ci
+          else
+            npm install
+          fi
 
       - name: devvit login
         env:
           DEVVIT_TOKEN: ${{ secrets.DEVVIT_TOKEN }}
         run: |
-          if [ -z "$DEVVIT_TOKEN" ]; then
-            echo "::error::DEVVIT_TOKEN secret is not set"
-            exit 1
-          fi
-          npx devvit whoami || true
+          node <<'NODE'
+          const fs = require('fs');
+          const os = require('os');
+          const path = require('path');
 
-      - name: devvit bundle
+          const raw = (process.env.DEVVIT_TOKEN || '').trim();
+          if (!raw) {
+            console.error('::error::DEVVIT_TOKEN secret is not set');
+            process.exit(1);
+          }
+
+          let auth;
+          try {
+            auth = raw.startsWith('{') ? JSON.parse(raw) : { accessToken: raw };
+          } catch {
+            console.error('::error::DEVVIT_TOKEN must be plain token text or auth.json content');
+            process.exit(1);
+          }
+
+          if (!auth || typeof auth.accessToken !== 'string' || !auth.accessToken.trim()) {
+            console.error('::error::DEVVIT_TOKEN must contain a non-empty accessToken');
+            process.exit(1);
+          }
+
+          const dir = path.join(os.homedir(), '.devvit');
+          fs.mkdirSync(dir, { recursive: true });
+          fs.writeFileSync(path.join(dir, 'auth.json'), JSON.stringify(auth, null, 2));
+          NODE
+          npx devvit whoami
+
+      - name: devvit validate
         env:
           DEVVIT_TOKEN: ${{ secrets.DEVVIT_TOKEN }}
         run: |
-          if [ -z "$DEVVIT_TOKEN" ]; then
-            echo "::error::DEVVIT_TOKEN secret is not set"
-            exit 1
-          fi
-          npx devvit bundle
+          node -e "JSON.parse(require('fs').readFileSync('package.json','utf8'))"
+          test -s devvit.yaml
+          test -s src/main.tsx
+          npx devvit version
 
       - name: devvit upload
         env:
@@ -65,7 +89,7 @@ jobs:
             echo "::error::DEVVIT_TOKEN secret is not set"
             exit 1
           fi
-          npx devvit upload --copyPaste
+          npx devvit upload --copy-paste
 
       - name: devvit publish
         env:
@@ -80,6 +104,5 @@ jobs:
             echo "::error::TARGET_SUBREDDIT secret is not set"
             exit 1
           fi
-          # Strip any leading "r/" the user may have included in the secret.
           SUB="${TARGET_SUBREDDIT#r/}"
           npx devvit install "r/$SUB"
