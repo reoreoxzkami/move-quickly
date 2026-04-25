@@ -27,10 +27,15 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'npm'
+
+      - name: Verify Devvit scaffold
+        run: |
+          test -f package.json
+          test -f devvit.yaml
+          test -f src/main.tsx
 
       - name: Install dependencies
-        run: npm ci
+        run: npm install
 
       - name: devvit login
         env:
