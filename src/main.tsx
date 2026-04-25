@@ -90,7 +90,7 @@ Devvit.addCustomPostType({
             {enemies.map((enemy) => (
               <vstack
                 key={enemy.id.toString()}
-                position={{ left: `${enemy.x}%`, top: `${enemy.y}%` }}
+                position={{ left: enemy.x, top: enemy.y }}
                 width="30px"
                 height="30px"
                 backgroundColor="#FF4500"
@@ -100,7 +100,7 @@ Devvit.addCustomPostType({
 
             {/* Render Player */}
             <vstack
-              position={{ left: `${playerX}%`, top: '85%' }}
+              position={{ left: playerX, top: 85 }}
               width="35px"
               height="35px"
               backgroundColor="#0079D3"
