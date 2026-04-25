@@ -7,7 +7,7 @@ Devvit.configure({
 
 /**
  * Click-only "Avoid the Blocks" Game
- * The player controls a circular avatar that follows the mouse/click position.
+ * The player controls a circular avatar that follows buttons or clicks.
  * Goal: Survive as long as possible while dodging falling obstacles.
  */
 
@@ -21,13 +21,13 @@ Devvit.addCustomPostType({
     const [highScore, setHighScore] = useState<number>(0);
     
     // Player position (X is 0 to 100)
-    const [playerX, setPlayerX] = useState<number>(50);
+    const [playerX, setPlayerX] = useState<number>(45);
     
-    // Enemy positions (simple array of objects)
-    const [enemies, setEnemies] = useState<{ id: number, x: number; y: number; speed: number }[]>([]);
+    // Enemy positions
+    const [enemies, setEnemies] = useState<{ id: string; x: number; y: number; speed: number }[]>([]);
 
-    // Tick logic for the game loop (runs every 100ms)
-    useInterval(() => {
+    // Tick logic for the game loop
+    const interval = useInterval(() => {
       if (gameState !== 'playing') return;
 
       setScore((s) => s + 1);
@@ -39,9 +39,9 @@ Devvit.addCustomPostType({
           .filter((e) => e.y < 100);
 
         // Spawn new enemy randomly
-        if (Math.random() > 0.8) {
+        if (Math.random() > 0.7) {
           movedEnemies.push({
-            id: Date.now(),
+            id: Math.random().toString(36).substring(7),
             x: Math.random() * 90,
             y: 0,
             speed: 5 + Math.random() * 5,
@@ -49,25 +49,29 @@ Devvit.addCustomPostType({
         }
 
         // Simple Collision Detection
+        // Player is roughly at y=85. Collision box check.
         const hit = movedEnemies.some(
-          (e) => Math.abs(e.x - playerX) < 10 && e.y > 80 && e.y < 95
+          (e) => Math.abs(e.x - playerX) < 12 && e.y > 75 && e.y < 95
         );
 
         if (hit) {
           setGameState('gameover');
-          if (score > highScore) setHighScore(score);
+          if (score > highScore) {
+            setHighScore(score);
+          }
           context.ui.showToast({ text: 'Game Over!', appearance: 'neutral' });
         }
 
         return movedEnemies;
       });
-    }, 100).start();
+    }, 100);
 
     const startGame = () => {
       setEnemies([]);
       setScore(0);
-      setPlayerX(50);
+      setPlayerX(45);
       setGameState('playing');
+      interval.start();
     };
 
     const moveLeft = () => setPlayerX((p) => Math.max(0, p - 10));
@@ -89,8 +93,8 @@ Devvit.addCustomPostType({
             {/* Render Enemies */}
             {enemies.map((enemy) => (
               <vstack
-                key={enemy.id.toString()}
-                position={{ left: enemy.x, top: enemy.y }}
+                key={enemy.id}
+                position={{ left: enemy.x, top: enemy.y, absolute: true }}
                 width="30px"
                 height="30px"
                 backgroundColor="#FF4500"
@@ -100,7 +104,7 @@ Devvit.addCustomPostType({
 
             {/* Render Player */}
             <vstack
-              position={{ left: playerX, top: 85 }}
+              position={{ left: playerX, top: 85, absolute: true }}
               width="35px"
               height="35px"
               backgroundColor="#0079D3"
@@ -113,7 +117,7 @@ Devvit.addCustomPostType({
 
           <spacer size="medium" />
 
-          {/* Controls - The main interaction via "Mouse clicks" on these areas */}
+          {/* Controls */}
           <hstack width="100%" height="60px" gap="medium">
             <button
               grow
@@ -121,7 +125,7 @@ Devvit.addCustomPostType({
               onPress={moveLeft}
               disabled={gameState !== 'playing'}
             >
-              ← Move Left
+              ← Left
             </button>
             <button
               grow
@@ -129,7 +133,7 @@ Devvit.addCustomPostType({
               onPress={moveRight}
               disabled={gameState !== 'playing'}
             >
-              Move Right →
+              Right →
             </button>
           </hstack>
         </vstack>
@@ -147,7 +151,7 @@ Devvit.addCustomPostType({
               <button appearance="primary" onPress={startGame}>
                 {gameState === 'start' ? 'START GAME' : 'TRY AGAIN'}
               </button>
-              <text size="small" color="#818384">Control by clicking the buttons</text>
+              <text size="small" color="#818384">Dodge the falling orange blocks!</text>
             </vstack>
           </zstack>
         )}
