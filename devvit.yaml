@@ -1,1 +1,3 @@
 name: move-quickly
+blocks:
+  entry: src/main.tsx
