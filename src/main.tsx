@@ -23,25 +23,23 @@ Devvit.addCustomPostType({
     // Player position (X is 0 to 100)
     const [playerX, setPlayerX] = useState<number>(50);
     
-    // Enemy positions
-    const [enemies, setEnemies] = useState<{ id: string, x: number; y: number; speed: number }[]>([]);
+    // Enemy positions (simple array of objects)
+    const [enemies, setEnemies] = useState<{ id: number, x: number; y: number; speed: number }[]>([]);
 
     // Tick logic for the game loop (runs every 100ms)
-    const gameTimer = useInterval(() => {
-      if (gameState !== 'playing') return;
-
+    const gameLoop = useInterval(() => {
       setScore((s) => s + 1);
 
       setEnemies((prevEnemies) => {
         // Move enemies down
-        let movedEnemies = prevEnemies
+        const movedEnemies = prevEnemies
           .map((e) => ({ ...e, y: e.y + e.speed }))
           .filter((e) => e.y < 100);
 
         // Spawn new enemy randomly
         if (Math.random() > 0.8) {
           movedEnemies.push({
-            id: Math.random().toString(36).substring(7),
+            id: Date.now() + Math.random(),
             x: Math.random() * 90,
             y: 0,
             speed: 5 + Math.random() * 5,
@@ -49,14 +47,19 @@ Devvit.addCustomPostType({
         }
 
         // Simple Collision Detection
+        // Width of enemy is ~10% of board, height covers the player row
         const hit = movedEnemies.some(
           (e) => Math.abs(e.x - playerX) < 10 && e.y > 80 && e.y < 95
         );
 
         if (hit) {
           setGameState('gameover');
-          setHighScore((prev) => (score > prev ? score : prev));
+          setScore((currentScore) => {
+            if (currentScore > highScore) setHighScore(currentScore);
+            return currentScore;
+          });
           context.ui.showToast({ text: 'Game Over!', appearance: 'neutral' });
+          gameLoop.stop();
         }
 
         return movedEnemies;
@@ -66,9 +69,9 @@ Devvit.addCustomPostType({
     const startGame = () => {
       setEnemies([]);
       setScore(0);
-      setPlayerX(50);
+      setPlayerX(45);
       setGameState('playing');
-      gameTimer.start();
+      gameLoop.start();
     };
 
     const moveLeft = () => setPlayerX((p) => Math.max(0, p - 10));
@@ -90,9 +93,9 @@ Devvit.addCustomPostType({
             {/* Render Enemies */}
             {enemies.map((enemy) => (
               <vstack
-                key={enemy.id}
+                key={enemy.id.toString()}
                 position={{ left: enemy.x, top: enemy.y }}
-                width="30px"
+                width="31px"
                 height="30px"
                 backgroundColor="#FF4500"
                 cornerRadius="small"
@@ -114,7 +117,7 @@ Devvit.addCustomPostType({
 
           <spacer size="medium" />
 
-          {/* Controls */}
+          {/* Controls - The main interaction via "Mouse clicks" on these areas */}
           <hstack width="100%" height="64px" gap="medium">
             <button
               grow
@@ -122,7 +125,7 @@ Devvit.addCustomPostType({
               onPress={moveLeft}
               disabled={gameState !== 'playing'}
             >
-              ← Move Left
+              ← Left
             </button>
             <button
               grow
@@ -130,14 +133,14 @@ Devvit.addCustomPostType({
               onPress={moveRight}
               disabled={gameState !== 'playing'}
             >
-              Move Right →
+              Right →
             </button>
           </hstack>
         </vstack>
 
         {/* Start / Game Over Overlays */}
         {gameState !== 'playing' && (
-          <zstack width="100%" height="100%" backgroundColor="rgba(0,0,0,0.85)" alignment="center middle">
+          <zstack width="100%" height="100%" backgroundColor="rgba(0,0,0,0.8)" alignment="center middle">
             <vstack alignment="center middle" gap="large" padding="large">
               <text size="xxlarge" weight="bold" color="white">
                 {gameState === 'start' ? 'AVOID BLOCKS' : 'GAME OVER'}
