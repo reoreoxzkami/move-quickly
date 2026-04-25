@@ -41,13 +41,11 @@ jobs:
         env:
           DEVVIT_TOKEN: ${{ secrets.DEVVIT_TOKEN }}
         run: |
-          # Non-interactive login: Devvit CLI reads DEVVIT_TOKEN from env.
-          # The --token flag is NOT supported; presence of the env var is enough.
           if [ -z "$DEVVIT_TOKEN" ]; then
             echo "::error::DEVVIT_TOKEN secret is not set"
             exit 1
           fi
-          npx -y devvit@latest whoami || true
+          npx devvit whoami || true
 
       - name: devvit bundle
         env:
@@ -57,7 +55,7 @@ jobs:
             echo "::error::DEVVIT_TOKEN secret is not set"
             exit 1
           fi
-          npx -y devvit@latest bundle
+          npx devvit bundle
 
       - name: devvit upload
         env:
@@ -67,7 +65,7 @@ jobs:
             echo "::error::DEVVIT_TOKEN secret is not set"
             exit 1
           fi
-          npx -y devvit@latest upload --copyPaste
+          npx devvit upload --copyPaste
 
       - name: devvit publish
         env:
@@ -84,4 +82,4 @@ jobs:
           fi
           # Strip any leading "r/" the user may have included in the secret.
           SUB="${TARGET_SUBREDDIT#r/}"
-          npx -y devvit@latest install "r/$SUB"
+          npx devvit install "r/$SUB"
