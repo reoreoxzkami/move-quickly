@@ -5,153 +5,152 @@ Devvit.configure({
   redis: true,
 });
 
-// A simple "Avoid the Walls" game playable with just a cursor/tap
+/**
+ * Click-only "Avoid the Blocks" Game
+ * The player controls a circular avatar that follows the mouse/click position.
+ * Goal: Survive as long as possible while dodging falling obstacles.
+ */
+
 Devvit.addCustomPostType({
-  name: 'CursorGame',
+  name: 'AvoidTheBlocks',
   height: 'tall',
   render: (context) => {
-    // Game State
-    const [score, setScore] = useState(0);
-    const [highScore, setHighScore] = useState(0);
-    const [gameState, setGameState] = useState<'start' | 'playing' | 'gameover'>('start');
+    // Game state: 'start', 'playing', 'gameover'
+    const [gameState, setGameState] = useState<string>('start');
+    const [score, setScore] = useState<number>(0);
+    const [highScore, setHighScore] = useState<number>(0);
     
-    // Player horizontal position (percentage 0-100)
-    const [playerPos, setPlayerPos] = useState(50);
+    // Player position (X is 0 to 100)
+    const [playerX, setPlayerX] = useState<number>(50);
     
-    // Wall positions: array of { id, y (0-100), gapStart (0-70) }
-    const [walls, setWalls] = useState([
-      { id: 0, y: 0, gapStart: 40 },
-      { id: 1, y: -40, gapStart: 20 },
-      { id: 2, y: -80, gapStart: 50 },
-    ]);
+    // Enemy positions (simple array of objects)
+    const [enemies, setEnemies] = useState<{ id: number, x: number; y: number; speed: number }[]>([]);
 
-    // Game loop running every 100ms
-    const interval = useInterval(() => {
-      let scoreIncrement = 0;
-      let collisionDetected = false;
+    // Tick logic for the game loop (runs every 100ms)
+    useInterval(() => {
+      if (gameState !== 'playing') return;
 
-      setWalls((prevWalls) => {
-        return prevWalls.map((wall) => {
-          let newY = wall.y + 5; 
-          
-          // Collision check: when wall is at player area (roughly y=80 to 90)
-          if (newY >= 80 && newY <= 90) {
-            const gapEnd = wall.gapStart + 30;
-            if (playerPos < wall.gapStart || playerPos > gapEnd) {
-              collisionDetected = true;
-            }
-          }
+      setScore((s) => s + 1);
 
-          // Reset wall to top and randomize gap
-          if (newY > 100) {
-            scoreIncrement++;
-            return {
-              id: wall.id,
-              y: 0,
-              gapStart: Math.floor(Math.random() * 70),
-            };
-          }
-          return { ...wall, y: newY };
-        });
-      });
+      setEnemies((prevEnemies) => {
+        // Move enemies down
+        const movedEnemies = prevEnemies
+          .map((e) => ({ ...e, y: e.y + e.speed }))
+          .filter((e) => e.y < 100);
 
-      if (collisionDetected) {
-        setGameState('gameover');
-        if (score > highScore) {
-          setHighScore(score);
+        // Spawn new enemy randomly
+        if (Math.random() > 0.8) {
+          movedEnemies.push({
+            id: Date.now(),
+            x: Math.random() * 90,
+            y: 0,
+            speed: 5 + Math.random() * 5,
+          });
         }
-        context.ui.showToast({ text: 'Game Over!', appearance: 'neutral' });
-        interval.stop();
-      } else if (scoreIncrement > 0) {
-        setScore((s) => s + scoreIncrement);
-      }
-    }, 100);
 
-    const moveLeft = () => setPlayerPos((p) => Math.max(0, p - 10));
-    const moveRight = () => setPlayerPos((p) => Math.min(90, p + 10));
-    
+        // Simple Collision Detection
+        const hit = movedEnemies.some(
+          (e) => Math.abs(e.x - playerX) < 10 && e.y > 80 && e.y < 95
+        );
+
+        if (hit) {
+          setGameState('gameover');
+          if (score > highScore) setHighScore(score);
+          context.ui.showToast({ text: 'Game Over!', appearance: 'neutral' });
+        }
+
+        return movedEnemies;
+      });
+    }, 100).start();
+
     const startGame = () => {
+      setEnemies([]);
       setScore(0);
-      setPlayerPos(50);
-      setWalls([
-        { id: 0, y: 0, gapStart: 40 },
-        { id: 1, y: -40, gapStart: 20 },
-        { id: 2, y: -80, gapStart: 50 },
-      ]);
+      setPlayerX(50);
       setGameState('playing');
-      interval.start();
     };
 
+    const moveLeft = () => setPlayerX((p) => Math.max(0, p - 10));
+    const moveRight = () => setPlayerX((p) => Math.min(90, p + 10));
+
     return (
-      <zstack width="100%" height="100%" backgroundColor="#1A1A1B">
-        {/* Game Field */}
-        <vstack width="100%" height="100%" alignment="top center">
-          {walls.map((wall) => (
-            <hstack 
-              key={wall.id.toString()}
-              width="100%" 
-              height="20px" 
-              position="absolute"
-              top={wall.y + "%" as any}
+      <zstack width="100%" height="100%" backgroundColor="#1A1A1B" alignment="center middle">
+        {/* Game Arena */}
+        <vstack width="100%" height="100%" alignment="top center" padding="medium">
+          <hstack width="100%" alignment="center space-between">
+            <text size="large" weight="bold" color="white">Score: {score}</text>
+            <text size="medium" color="#D7DADC">Best: {highScore}</text>
+          </hstack>
+
+          <spacer size="medium" />
+
+          {/* Active Game Area */}
+          <zstack width="100%" grow backgroundColor="#030303" cornerRadius="medium">
+            {/* Render Enemies */}
+            {enemies.map((enemy) => (
+              <vstack
+                key={enemy.id.toString()}
+                position={{ left: enemy.x, top: enemy.y }}
+                width="30px"
+                height="30px"
+                backgroundColor="#FF4500"
+                cornerRadius="small"
+              />
+            ))}
+
+            {/* Render Player */}
+            <vstack
+              position={{ left: playerX, top: 85 }}
+              width="35px"
+              height="35px"
+              backgroundColor="#0079D3"
+              cornerRadius="full"
+              alignment="center middle"
             >
-              {/* Left Wall Part */}
-              <hstack width={wall.gapStart + "%" as any} height="100%" backgroundColor="#FF4500" />
-              {/* Gap */}
-              <spacer width="30%" height="100%" />
-              {/* Right Wall Part */}
-              <hstack grow height="100%" backgroundColor="#FF4500" />
-            </hstack>
-          ))}
+               <icon name="bot" color="white" />
+            </vstack>
+          </zstack>
+
+          <spacer size="medium" />
+
+          {/* Controls - The main interaction via "Mouse clicks" on these areas */}
+          <hstack width="100%" height="60px" gap="medium">
+            <button
+              grow
+              appearance="secondary"
+              onPress={moveLeft}
+              disabled={gameState !== 'playing'}
+            >
+              ← Move Left
+            </button>
+            <button
+              grow
+              appearance="secondary"
+              onPress={moveRight}
+              disabled={gameState !== 'playing'}
+            >
+              Move Right →
+            </button>
+          </hstack>
         </vstack>
 
-        {/* Player Character */}
-        <vstack 
-          width="100%" 
-          height="100%" 
-          alignment="top left" 
-        >
-          <hstack 
-            width="32px" 
-            height="32px" 
-            backgroundColor="#0079D3"
-            cornerRadius="full"
-            position="absolute"
-            top="85%"
-            left={playerPos + "%" as any}
-          />
-        </vstack>
-
-        {/* UI Overlay */}
-        <vstack width="100%" height="100%" alignment="center middle" padding="medium">
-          {gameState === 'start' && (
-            <vstack alignment="center middle" backgroundColor="rgba(0,0,0,0.8)" padding="large" cornerRadius="medium" gap="medium">
-              <text size="xlarge" weight="bold" color="white">CURSOR DODGE</text>
-              <text color="white">Avoid the orange walls!</text>
-              <button appearance="primary" onPress={startGame}>START GAME</button>
+        {/* Start / Game Over Overlays */}
+        {gameState !== 'playing' && (
+          <zstack width="100%" height="100%" backgroundColor="rgba(0,0,0,0.8)" alignment="center middle">
+            <vstack alignment="center middle" gap="large" padding="large">
+              <text size="xxlarge" weight="bold" color="white">
+                {gameState === 'start' ? 'AVOID BLOCKS' : 'GAME OVER'}
+              </text>
+              {gameState === 'gameover' && (
+                <text size="large" color="#FF4500">Final Score: {score}</text>
+              )}
+              <button appearance="primary" onPress={startGame}>
+                {gameState === 'start' ? 'START GAME' : 'TRY AGAIN'}
+              </button>
+              <text size="small" color="#818384">Control by clicking the buttons</text>
             </vstack>
-          )}
-
-          {gameState === 'playing' && (
-            <vstack width="100%" height="100%" alignment="bottom center">
-              <hstack width="100%" gap="large" alignment="center middle" padding="medium">
-                <button width="45%" onPress={moveLeft} icon="caret-left" appearance="secondary">LEFT</button>
-                <button width="45%" onPress={moveRight} icon="caret-right" appearance="secondary">RIGHT</button>
-              </hstack>
-              <hstack width="100%" alignment="center middle" padding="small">
-                <text weight="bold" color="white">SCORE: {score}</text>
-              </hstack>
-            </vstack>
-          )}
-
-          {gameState === 'gameover' && (
-            <vstack alignment="center middle" backgroundColor="rgba(0,0,0,0.8)" padding="large" cornerRadius="medium" gap="medium">
-              <text size="xlarge" weight="bold" color="#FF4500">GAME OVER</text>
-              <text color="white">Score: {score}</text>
-              <text color="white">Best: {highScore}</text>
-              <button appearance="primary" onPress={startGame}>TRY AGAIN</button>
-            </vstack>
-          )}
-        </vstack>
+          </zstack>
+        )}
       </zstack>
     );
   },
