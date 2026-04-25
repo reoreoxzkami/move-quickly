@@ -19,34 +19,32 @@ Devvit.addCustomPostType({
     const [playerPos, setPlayerPos] = useState(50);
     
     // Wall positions: array of { id, y (0-100), gapStart (0-70) }
-    const [walls, setWalls] = useState([
+    const [walls, setWalls] = useState(() => [
       { id: 0, y: 0, gapStart: 40 },
       { id: 1, y: -40, gapStart: 20 },
       { id: 2, y: -80, gapStart: 50 },
     ]);
 
     // Game loop running every 100ms
-    const interval = useInterval(() => {
+    useInterval(() => {
       if (gameState !== 'playing') return;
 
-      let scoreIncrement = 0;
-      let collisionDetected = false;
-
       setWalls((prevWalls) => {
-        return prevWalls.map((wall) => {
-          let newY = wall.y + 5; 
+        let collision = false;
+        const newWalls = prevWalls.map((wall) => {
+          let newY = wall.y + 5; // Gravity/Velocity
           
           // Collision check: when wall is at player area (roughly y=80 to 90)
           if (newY >= 80 && newY <= 90) {
             const gapEnd = wall.gapStart + 30;
             if (playerPos < wall.gapStart || playerPos > gapEnd) {
-              collisionDetected = true;
+              collision = true;
             }
           }
 
           // Reset wall to top and randomize gap
           if (newY > 100) {
-            scoreIncrement++;
+            setScore((s) => s + 1);
             return {
               id: wall.id,
               y: 0,
@@ -55,23 +53,16 @@ Devvit.addCustomPostType({
           }
           return { ...wall, y: newY };
         });
-      });
 
-      if (collisionDetected) {
-        setGameState('gameover');
-        if (score > highScore) {
-          setHighScore(score);
+        if (collision) {
+          setGameState('gameover');
+          if (score > highScore) setHighScore(score);
+          context.ui.showToast({ text: 'Game Over!', appearance: 'neutral' });
         }
-        context.ui.showToast({ text: 'Game Over!', appearance: 'neutral' });
-      } else if (scoreIncrement > 0) {
-        setScore((s) => s + scoreIncrement);
-      }
-    }, 100);
 
-    // Initial start
-    if (gameState === 'playing' && !interval.isActive()) {
-      interval.start();
-    }
+        return newWalls;
+      });
+    }, 100).start();
 
     const moveLeft = () => setPlayerPos((p) => Math.max(0, p - 10));
     const moveRight = () => setPlayerPos((p) => Math.min(90, p + 10));
@@ -85,7 +76,6 @@ Devvit.addCustomPostType({
         { id: 2, y: -80, gapStart: 50 },
       ]);
       setGameState('playing');
-      interval.start();
     };
 
     return (
@@ -98,10 +88,10 @@ Devvit.addCustomPostType({
               width="100%" 
               height="20px" 
               position="absolute"
-              top={wall.y + "%" as any}
+              top={`${wall.y}%` as any}
             >
               {/* Left Wall Part */}
-              <hstack width={wall.gapStart + "%" as any} height="100%" backgroundColor="#FF4500" />
+              <hstack width={`${wall.gapStart}%` as any} height="100%" backgroundColor="#FF4500" />
               {/* Gap */}
               <spacer width="30%" height="100%" />
               {/* Right Wall Part */}
@@ -115,6 +105,7 @@ Devvit.addCustomPostType({
           width="100%" 
           height="100%" 
           alignment="top left" 
+          padding="none"
         >
           <hstack 
             width="32px" 
@@ -123,7 +114,7 @@ Devvit.addCustomPostType({
             cornerRadius="full"
             position="absolute"
             top="85%"
-            left={playerPos + "%" as any}
+            left={`${playerPos}%` as any}
           />
         </vstack>
 
@@ -151,7 +142,7 @@ Devvit.addCustomPostType({
 
           {gameState === 'gameover' && (
             <vstack alignment="center middle" backgroundColor="rgba(0,0,0,0.8)" padding="large" cornerRadius="medium" gap="medium">
-              <text size="xlarge" weight="bold" color="#FF4500">GAME OVER</text>
+              <text size="xlarge" weight="bold" color="red">GAME OVER</text>
               <text color="white">Score: {score}</text>
               <text color="white">Best: {highScore}</text>
               <button appearance="primary" onPress={startGame}>TRY AGAIN</button>
