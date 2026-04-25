@@ -1,26 +1,19 @@
 {
-  "name": "move-quickly",
-  "version": "0.0.1",
   "private": true,
+  "name": "move-quickly",
+  "version": "0.12.20",
+  "license": "BSD-3-Clause",
   "type": "module",
-  "main": "src/main.tsx",
-  "packageManager": "npm@10",
-  "engines": {
-    "node": ">=20"
-  },
   "scripts": {
-    "build": "devvit bundle",
-    "bundle": "devvit bundle",
-    "upload": "devvit upload --copyPaste",
+    "upload": "devvit upload --copy-paste",
     "publish": "devvit install",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@devvit/public-api": "^0.12.20"
+    "@devvit/public-api": "0.12.20"
   },
   "devDependencies": {
-    "@types/node": "^24.0.0",
-    "devvit": "^0.12.20",
-    "typescript": "^5.8.3"
+    "devvit": "0.12.20",
+    "typescript": "5.8.3"
   }
 }
