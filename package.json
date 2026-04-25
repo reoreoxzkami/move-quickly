@@ -1,0 +1,17 @@
+{
+  "name": "move-quickly",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "main": "src/main.tsx",
+  "scripts": {
+    "devvit:bundle": "devvit bundle"
+  },
+  "dependencies": {
+    "@devvit/public-api": "latest"
+  },
+  "devDependencies": {
+    "devvit": "latest",
+    "typescript": "latest"
+  }
+}
