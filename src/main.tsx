@@ -15,22 +15,16 @@ Devvit.addCustomPostType({
 
     // Levels definitions (obstacle positions)
     const levels = [
-      { goal: "Right", walls: [{ top: 30, left: 40, w: 20, h: 40 }] },
-      { 
-        goal: "Bottom", 
-        walls: [
-          { top: 0, left: 20, w: 10, h: 70 },
-          { top: 30, left: 70, w: 10, h: 70 }
-        ]
-      },
-      { 
-        goal: "Center", 
-        walls: [
-          { top: 20, left: 20, w: 60, h: 10 },
-          { top: 70, left: 20, w: 60, h: 10 },
-          { top: 20, left: 20, w: 10, h: 60 }
-        ]
-      }
+      { walls: [{ top: 30, left: 40, w: 20, h: 40 }] },
+      { walls: [
+        { top: 0, left: 20, w: 10, h: 70 },
+        { top: 30, left: 70, w: 10, h: 70 }
+      ]},
+      { walls: [
+        { top: 20, left: 20, w: 60, h: 10 },
+        { top: 70, left: 20, w: 60, h: 10 },
+        { top: 20, left: 20, w: 10, h: 60 },
+      ]}
     ];
 
     const currentLevel = levels[level - 1] || levels[0];
@@ -87,7 +81,7 @@ Devvit.addCustomPostType({
         <vstack height="100%" width="100%" padding="medium">
            <hstack width="100%" alignment="middle space-between">
              <text size="large" weight="bold">Level {level}</text>
-             <text size="small">Navigate to the Goal</text>
+             <text size="small">Navigate to the Green Goal</text>
            </hstack>
         </vstack>
 
@@ -98,10 +92,10 @@ Devvit.addCustomPostType({
             onMouseEnter={() => setGameState('gameover')}
             backgroundColor="#1e293b"
             position="absolute"
-            top={`${wall.top}%`}
-            left={`${wall.left}%`}
-            width={`${wall.w}%`}
-            height={`${wall.h}%`}
+            top={`${wall.top}%` as any}
+            left={`${wall.left}%` as any}
+            width={`${wall.w}%` as any}
+            height={`${wall.h}%` as any}
           />
         ))}
 
@@ -111,8 +105,8 @@ Devvit.addCustomPostType({
           backgroundColor="#22c55e"
           alignment="center middle"
           position="absolute"
-          top="80%"
-          left="70%"
+          bottom={10}
+          right={10}
           width="64px"
           height="64px"
         >
@@ -122,10 +116,10 @@ Devvit.addCustomPostType({
         {/* Start Point Marker */}
         <vstack
           position="absolute"
-          top="10%"
-          left="5%"
-          width="40px"
-          height="40px"
+          top={50}
+          left={10}
+          width="50px"
+          height="50px"
           border="thin"
           alignment="center middle"
         >
