@@ -27,6 +27,8 @@ Devvit.addCustomPostType({
 
     // Game loop running every 100ms
     const interval = useInterval(() => {
+      if (gameState !== 'playing') return;
+
       let scoreIncrement = 0;
       let collisionDetected = false;
 
@@ -61,11 +63,15 @@ Devvit.addCustomPostType({
           setHighScore(score);
         }
         context.ui.showToast({ text: 'Game Over!', appearance: 'neutral' });
-        interval.stop();
       } else if (scoreIncrement > 0) {
         setScore((s) => s + scoreIncrement);
       }
     }, 100);
+
+    // Initial start
+    if (gameState === 'playing' && !interval.isActive()) {
+      interval.start();
+    }
 
     const moveLeft = () => setPlayerPos((p) => Math.max(0, p - 10));
     const moveRight = () => setPlayerPos((p) => Math.min(90, p + 10));
