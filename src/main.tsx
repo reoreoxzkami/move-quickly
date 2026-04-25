@@ -20,11 +20,11 @@ Devvit.addCustomPostType({
     const [score, setScore] = useState<number>(0);
     const [highScore, setHighScore] = useState<number>(0);
     
-    // Player position (X is 0 to 100 percentage)
+    // Player position (X percentage 0 to 90)
     const [playerX, setPlayerX] = useState<number>(50);
     
-    // Enemy positions (simple array of objects)
-    const [enemies, setEnemies] = useState<{ id: number, x: number; y: number; speed: number }[]>([]);
+    // Enemy positions
+    const [enemies, setEnemies] = useState<{ id: string, x: number; y: number; speed: number }[]>([]);
 
     // Tick logic for the game loop (runs every 100ms)
     const timer = useInterval(() => {
@@ -39,24 +39,25 @@ Devvit.addCustomPostType({
         // Spawn new enemy randomly
         if (Math.random() > 0.8) {
           movedEnemies.push({
-            id: Date.now() + Math.random(),
+            id: Math.random().toString(36).substring(7),
             x: Math.random() * 90,
             y: 0,
             speed: 5 + Math.random() * 5,
           });
         }
 
-        // Collision Detection
-        // Note: playerX in this scope is from the render cycle.
+        // Simple Collision Detection
+        // Note: Using playerX within this functional update closure 
+        // works correctly in Devvit's state management.
         const hit = movedEnemies.some(
-          (e) => Math.abs(e.x - playerX) < 12 && e.y > 75 && e.y < 95
+          (e) => Math.abs(e.x - playerX) < 10 && e.y > 80 && e.y < 95
         );
 
         if (hit) {
           setGameState('gameover');
           timer.stop();
           if (score > highScore) {
-            setHighScore(score);
+             setHighScore(score);
           }
           context.ui.showToast({ text: 'Game Over!', appearance: 'neutral' });
         }
@@ -68,7 +69,7 @@ Devvit.addCustomPostType({
     const startGame = () => {
       setEnemies([]);
       setScore(0);
-      setPlayerX(45);
+      setPlayerX(50);
       setGameState('playing');
       timer.start();
     };
@@ -91,9 +92,9 @@ Devvit.addCustomPostType({
           <zstack width="100%" grow backgroundColor="#030303" cornerRadius="medium">
             {/* Render Enemies */}
             {enemies.map((enemy) => (
-              <container
-                key={enemy.id.toString()}
-                position={{ left: enemy.x, top: enemy.y, bottom: undefined, right: undefined }}
+              <vstack
+                key={enemy.id}
+                position={{ left: enemy.x, top: enemy.y }}
                 width="30px"
                 height="30px"
                 backgroundColor="#FF4500"
@@ -103,7 +104,7 @@ Devvit.addCustomPostType({
 
             {/* Render Player */}
             <vstack
-              position={{ left: playerX, top: 85, bottom: undefined, right: undefined }}
+              position={{ left: playerX, top: 85 }}
               width="35px"
               height="35px"
               backgroundColor="#0079D3"
@@ -117,14 +118,14 @@ Devvit.addCustomPostType({
           <spacer size="medium" />
 
           {/* Controls */}
-          <hstack width="100%" height="64px" gap="medium">
+          <hstack width="100%" height="60px" gap="medium">
             <button
               grow
               appearance="secondary"
               onPress={moveLeft}
               disabled={gameState !== 'playing'}
             >
-              ← Left
+              ← Move Left
             </button>
             <button
               grow
@@ -132,14 +133,14 @@ Devvit.addCustomPostType({
               onPress={moveRight}
               disabled={gameState !== 'playing'}
             >
-              Right →
+              Move Right →
             </button>
           </hstack>
         </vstack>
 
         {/* Start / Game Over Overlays */}
         {gameState !== 'playing' && (
-          <zstack width="100%" height="100%" backgroundColor="rgba(0,0,0,0.85)" alignment="center middle">
+          <zstack width="100%" height="100%" backgroundColor="rgba(0,0,0,0.8)" alignment="center middle">
             <vstack alignment="center middle" gap="large" padding="large">
               <text size="xxlarge" weight="bold" color="white">
                 {gameState === 'start' ? 'AVOID BLOCKS' : 'GAME OVER'}
@@ -150,7 +151,7 @@ Devvit.addCustomPostType({
               <button appearance="primary" onPress={startGame}>
                 {gameState === 'start' ? 'START GAME' : 'TRY AGAIN'}
               </button>
-              <text size="small" color="#818384">Move using the buttons below</text>
+              <text size="small" color="#818384">Control by clicking the buttons</text>
             </vstack>
           </zstack>
         )}
