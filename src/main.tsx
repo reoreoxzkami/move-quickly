@@ -10,8 +10,8 @@ Devvit.addCustomPostType({
   name: 'Mouse Cursor Challenge',
   height: 'tall',
   render: (context) => {
-    const [gameState, setGameState] = useState<'start' | 'playing' | 'gameover' | 'win'>('start');
-    const [level, setLevel] = useState(1);
+    const [gameState, setGameState] = useState<'start' | 'playing' | 'gameover' | 'win'>(() => 'start');
+    const [level, setLevel] = useState(() => 1);
 
     // Levels definitions (obstacle positions)
     const levels = [
@@ -91,7 +91,7 @@ Devvit.addCustomPostType({
             key={`wall-${index}`}
             onMouseEnter={() => setGameState('gameover')}
             backgroundColor="#1e293b"
-            position="absolute"
+            // Devvit uses string literals or numbers for dimensions; casting to Devvit.Offset
             top={wall.top as any}
             left={wall.left as any}
             width={wall.w as any}
@@ -104,9 +104,8 @@ Devvit.addCustomPostType({
           onMouseEnter={handleWin}
           backgroundColor="#22c55e"
           alignment="center middle"
-          position="absolute"
-          bottom={10 as any}
-          right={10 as any}
+          // Using absolute position shorthand
+          offset={{ x: 250, y: 400 }} 
           width={64 as any}
           height={64 as any}
         >
@@ -115,9 +114,7 @@ Devvit.addCustomPostType({
 
         {/* Start Point Marker */}
         <vstack
-          position="absolute"
-          top={15 as any}
-          left={5 as any}
+          offset={{ x: 10, y: 50 }}
           width={40 as any}
           height={40 as any}
           border="thin"
