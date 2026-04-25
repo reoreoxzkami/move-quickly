@@ -41,16 +41,29 @@ jobs:
         env:
           DEVVIT_TOKEN: ${{ secrets.DEVVIT_TOKEN }}
         run: |
-          # Non-interactive login using a Reddit-issued Devvit token.
-          npx -y devvit@latest login --token "$DEVVIT_TOKEN"
+          # Non-interactive login: Devvit CLI reads DEVVIT_TOKEN from env.
+          # The --token flag is NOT supported; presence of the env var is enough.
+          if [ -z "$DEVVIT_TOKEN" ]; then
+            echo "::error::DEVVIT_TOKEN secret is not set"
+            exit 1
+          fi
+          npx -y devvit@latest whoami || true
 
       - name: devvit bundle
+        env:
+          DEVVIT_TOKEN: ${{ secrets.DEVVIT_TOKEN }}
         run: npx -y devvit@latest bundle
 
       - name: devvit upload
+        env:
+          DEVVIT_TOKEN: ${{ secrets.DEVVIT_TOKEN }}
         run: npx -y devvit@latest upload --copyPaste
 
       - name: devvit publish
         env:
+          DEVVIT_TOKEN: ${{ secrets.DEVVIT_TOKEN }}
           TARGET_SUBREDDIT: ${{ secrets.TARGET_SUBREDDIT }}
-        run: npx -y devvit@latest install "$TARGET_SUBREDDIT"
+        run: |
+          # Strip any leading "r/" the user may have included in the secret.
+          SUB="${TARGET_SUBREDDIT#r/}"
+          npx -y devvit@latest install "r/$SUB"
