@@ -28,16 +28,15 @@ Devvit.addCustomPostType({
 
     // Tick logic for the game loop (runs every 100ms)
     const timer = useInterval(() => {
-      // Functional update to avoid closure staleness issues with playerX
-      setEnemies((prevEnemies) => {
-        if (gameState !== 'playing') return prevEnemies;
+      setScore((s) => s + 1);
 
+      setEnemies((prevEnemies) => {
         // Move enemies down
         const movedEnemies = prevEnemies
           .map((e) => ({ ...e, y: e.y + e.speed }))
           .filter((e) => e.y < 100);
 
-        // Spawn new enemy randomly
+        // Spawn new enemy randomly (approx 20% chance per tick)
         if (Math.random() > 0.8) {
           movedEnemies.push({
             id: Math.random().toString(36).substring(7),
@@ -48,7 +47,7 @@ Devvit.addCustomPostType({
         }
 
         // Simple Collision Detection
-        // Note: playerX is accessible here from the outer scope's latest render value
+        // Since playerX is updated via button states, it is available in this scope during the tick
         const hit = movedEnemies.some(
           (e) => Math.abs(e.x - playerX) < 10 && e.y > 80 && e.y < 95
         );
@@ -56,17 +55,15 @@ Devvit.addCustomPostType({
         if (hit) {
           setGameState('gameover');
           timer.stop();
+          if (score > highScore) setHighScore(score);
           context.ui.showToast({ text: 'Game Over!', appearance: 'neutral' });
-          return movedEnemies;
         }
 
-        setScore((s) => s + 1);
         return movedEnemies;
       });
     }, 100);
 
     const startGame = () => {
-      if (score > highScore) setHighScore(score);
       setEnemies([]);
       setScore(0);
       setPlayerX(50);
@@ -117,8 +114,8 @@ Devvit.addCustomPostType({
 
           <spacer size="medium" />
 
-          {/* Controls - The main interaction via "Mouse clicks" on these areas */}
-          <hstack width="100%" height="60px" gap="medium">
+          {/* Controls */}
+          <hstack width="100%" height={60} gap="medium">
             <button
               grow
               appearance="secondary"
