@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "main": "src/main.tsx",
+  "packageManager": "npm@10",
   "engines": {
     "node": ">=20"
   },
@@ -11,14 +12,15 @@
     "build": "devvit bundle",
     "bundle": "devvit bundle",
     "upload": "devvit upload --copyPaste",
+    "publish": "devvit install",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@devvit/public-api": "latest"
+    "@devvit/public-api": "^0.12.20"
   },
   "devDependencies": {
-    "@types/node": "latest",
-    "devvit": "latest",
-    "typescript": "latest"
+    "@types/node": "^24.0.0",
+    "devvit": "^0.12.20",
+    "typescript": "^5.8.3"
   }
 }
