@@ -47,6 +47,8 @@ Devvit.addCustomPostType({
         }
 
         // Collision Detection
+        // Using playerX from state. Note: in Devvit hooks, the state value 
+        // within the functional update of another state represents the value at that render tick.
         const hit = movedEnemies.some(
           (e) => Math.abs(e.x - playerX) < 10 && e.y > 80 && e.y < 95
         );
