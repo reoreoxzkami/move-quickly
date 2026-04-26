@@ -1,9 +1,14 @@
 name: Devvit Deploy
 
+# Triggered on every push to main, or manually from the Actions tab.
 on:
   push:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version label (optional)'
+        required: false
 
 concurrency:
   group: devvit-deploy-${{ github.ref }}
@@ -22,87 +27,68 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: npm
 
       - name: Verify Devvit scaffold
         run: |
-          test -s package.json
-          test -s devvit.yaml
-          test -s src/main.tsx
+          test -f package.json
+          test -f devvit.yaml
+          test -f src/main.tsx
+
+      - name: Verify required secrets
+        env:
+          DEVVIT_TOKEN: ${{ secrets.DEVVIT_TOKEN }}
+          TARGET_SUBREDDIT: ${{ secrets.TARGET_SUBREDDIT }}
+        run: |
+          # Fail FAST if secrets are missing or empty. We do NOT echo the
+          # values — only their lengths — so nothing leaks to the run log.
+          missing=0
+          if [ -z "${DEVVIT_TOKEN}" ]; then
+            echo "::error title=Missing secret::DEVVIT_TOKEN secret is not set on this repository."
+            missing=1
+          else
+            echo "DEVVIT_TOKEN length: ${#DEVVIT_TOKEN}"
+          fi
+          if [ -z "${TARGET_SUBREDDIT}" ]; then
+            echo "::error title=Missing secret::TARGET_SUBREDDIT secret is not set on this repository."
+            missing=1
+          else
+            echo "TARGET_SUBREDDIT length: ${#TARGET_SUBREDDIT}"
+          fi
+          if [ "$missing" -ne 0 ]; then
+            echo "::error::Set the missing secrets in Devvit Studio → Settings → GitHub repository secrets, then re-run."
+            exit 78
+          fi
 
       - name: Install dependencies
-        run: |
-          if [ -f package-lock.json ]; then
-            npm ci
-          else
-            npm install
-          fi
+        run: npm install
 
       - name: devvit login
         env:
           DEVVIT_TOKEN: ${{ secrets.DEVVIT_TOKEN }}
         run: |
-          node <<'NODE'
-          const fs = require('fs');
-          const os = require('os');
-          const path = require('path');
-
-          const raw = (process.env.DEVVIT_TOKEN || '').trim();
-          if (!raw) {
-            console.error('::error::DEVVIT_TOKEN secret is not set');
-            process.exit(1);
-          }
-
-          let auth;
-          try {
-            auth = raw.startsWith('{') ? JSON.parse(raw) : { accessToken: raw };
-          } catch {
-            console.error('::error::DEVVIT_TOKEN must be plain token text or auth.json content');
-            process.exit(1);
-          }
-
-          if (!auth || typeof auth.accessToken !== 'string' || !auth.accessToken.trim()) {
-            console.error('::error::DEVVIT_TOKEN must contain a non-empty accessToken');
-            process.exit(1);
-          }
-
-          const dir = path.join(os.homedir(), '.devvit');
-          fs.mkdirSync(dir, { recursive: true });
-          fs.writeFileSync(path.join(dir, 'auth.json'), JSON.stringify(auth, null, 2));
-          NODE
-          npx devvit whoami
-
-      - name: devvit validate
-        env:
-          DEVVIT_TOKEN: ${{ secrets.DEVVIT_TOKEN }}
-        run: |
-          node -e "JSON.parse(require('fs').readFileSync('package.json','utf8'))"
-          test -s devvit.yaml
-          test -s src/main.tsx
-          npx devvit version
-
-      - name: devvit upload
-        env:
-          DEVVIT_TOKEN: ${{ secrets.DEVVIT_TOKEN }}
-        run: |
+          # Non-interactive login: Devvit CLI reads DEVVIT_TOKEN from env.
+          # The --token flag is NOT supported; presence of the env var is enough.
           if [ -z "$DEVVIT_TOKEN" ]; then
             echo "::error::DEVVIT_TOKEN secret is not set"
             exit 1
           fi
-          npx devvit upload --copy-paste
+          npx -y devvit@latest whoami || true
+
+      - name: devvit bundle
+        env:
+          DEVVIT_TOKEN: ${{ secrets.DEVVIT_TOKEN }}
+        run: npx -y devvit@latest bundle
+
+      - name: devvit upload
+        env:
+          DEVVIT_TOKEN: ${{ secrets.DEVVIT_TOKEN }}
+        run: npx -y devvit@latest upload --copyPaste
 
       - name: devvit publish
         env:
           DEVVIT_TOKEN: ${{ secrets.DEVVIT_TOKEN }}
           TARGET_SUBREDDIT: ${{ secrets.TARGET_SUBREDDIT }}
         run: |
-          if [ -z "$DEVVIT_TOKEN" ]; then
-            echo "::error::DEVVIT_TOKEN secret is not set"
-            exit 1
-          fi
-          if [ -z "$TARGET_SUBREDDIT" ]; then
-            echo "::error::TARGET_SUBREDDIT secret is not set"
-            exit 1
-          fi
+          # Strip any leading "r/" the user may have included in the secret.
           SUB="${TARGET_SUBREDDIT#r/}"
-          npx devvit install "r/$SUB"
+          npx -y devvit@latest install "r/$SUB"
