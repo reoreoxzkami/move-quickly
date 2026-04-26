@@ -1,23 +1,17 @@
 {
-  "private": true,
   "name": "move-quickly",
   "version": "0.0.1",
-  "license": "BSD-3-Clause",
+  "private": true,
   "type": "module",
+  "main": "src/main.tsx",
   "scripts": {
-    "login": "devvit login",
-    "build": "devvit bundle",
-    "upload": "devvit upload --copy-paste",
-    "deploy": "devvit upload",
-    "launch": "devvit install",
-    "type-check": "tsc --noEmit"
+    "devvit:bundle": "devvit bundle"
   },
   "dependencies": {
-    "@devvit/public-api": "0.12.20",
-    "@devvit/tsconfig": "0.12.20"
+    "@devvit/public-api": "latest"
   },
   "devDependencies": {
-    "devvit": "0.12.20",
-    "typescript": "5.8.3"
+    "devvit": "latest",
+    "typescript": "latest"
   }
 }
