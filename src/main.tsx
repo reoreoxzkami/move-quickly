@@ -5,7 +5,7 @@ Devvit.configure({
   redis: true,
 });
 
-// A simple "Avoid the Walls" mouse-only game
+// A simple Pathfinder game using clicks since mouse hover events are not supported
 Devvit.addCustomPostType({
   name: 'Mouse Cursor Challenge',
   height: 'tall',
@@ -15,16 +15,22 @@ Devvit.addCustomPostType({
 
     // Levels definitions (obstacle positions)
     const levels = [
-      { walls: [{ top: 30, left: 40, w: 20, h: 40 }] },
-      { walls: [
-        { top: 0, left: 20, w: 10, h: 70 },
-        { top: 30, left: 70, w: 10, h: 70 }
-      ]},
-      { walls: [
-        { top: 20, left: 20, w: 60, h: 10 },
-        { top: 70, left: 20, w: 60, h: 10 },
-        { top: 20, left: 20, w: 10, h: 60 },
-      ]}
+      { 
+        walls: [{ top: 30, left: 40, w: 20, h: 40 }] 
+      },
+      { 
+        walls: [
+          { top: 0, left: 20, w: 10, h: 70 },
+          { top: 30, left: 70, w: 10, h: 70 }
+        ]
+      },
+      { 
+        walls: [
+          { top: 20, left: 20, w: 60, h: 10 },
+          { top: 70, left: 20, w: 60, h: 10 },
+          { top: 20, left: 20, w: 10, h: 60 },
+        ]
+      }
     ];
 
     const currentLevel = levels[level - 1] || levels[0];
@@ -42,12 +48,16 @@ Devvit.addCustomPostType({
       }
     };
 
+    const handleGameOver = () => {
+      setGameState('gameover');
+    };
+
     // Start Screen
     if (gameState === 'start') {
       return (
         <vstack height="100%" alignment="center middle" gap="medium">
-          <text size="xlarge" weight="bold">Cursor Challenge</text>
-          <text>Don't touch the dark blocks!</text>
+          <text size="xlarge" weight="bold">Pathfinder Challenge</text>
+          <text>Reach the Green Goal without clicking the obstacles!</text>
           <button onPress={() => setGameState('playing')}>Start Game</button>
         </vstack>
       );
@@ -57,7 +67,7 @@ Devvit.addCustomPostType({
     if (gameState === 'gameover') {
       return (
         <vstack height="100%" alignment="center middle" gap="medium" backgroundColor="#fee2e2">
-          <text color="red" size="xlarge" weight="bold">GAME OVER</text>
+          <text color="#ef4444" size="xlarge" weight="bold">HIT A WALL!</text>
           <button onPress={resetGame}>Try Again</button>
         </vstack>
       );
@@ -67,8 +77,8 @@ Devvit.addCustomPostType({
     if (gameState === 'win') {
       return (
         <vstack height="100%" alignment="center middle" gap="medium" backgroundColor="#f0fdf4">
-          <text color="green" size="xlarge" weight="bold">CONGRATULATIONS!</text>
-          <text>You mastered the cursor.</text>
+          <text color="#22c55e" size="xlarge" weight="bold">CONGRATULATIONS!</text>
+          <text>You mastered the path.</text>
           <button onPress={resetGame}>Play Again</button>
         </vstack>
       );
@@ -77,53 +87,62 @@ Devvit.addCustomPostType({
     // Main Gameplay
     return (
       <zstack height="100%" width="100%" backgroundColor="#f8fafc">
-        {/* Background / Safety Area */}
+        {/* Background Layer */}
         <vstack height="100%" width="100%" padding="medium">
            <hstack width="100%" alignment="middle space-between">
              <text size="large" weight="bold">Level {level}</text>
-             <text size="small">Navigate to the Green Goal</text>
+             <text size="small">Click the Green Goal</text>
            </hstack>
         </vstack>
 
-        {/* Walls - If hovered, trigger game over */}
+        {/* Path Layer (Safe to click) */}
+        <spacer 
+            height="100%" 
+            width="100%" 
+            onPress={() => context.ui.showToast({ text: "Safe! Keep going.", appearance: 'neutral' })} 
+        />
+
+        {/* Obstacles / Walls - Trigger Game Over on Press */}
         {currentLevel.walls.map((wall, index) => (
           <hstack
             key={`wall-${index}`}
-            onMouseEnter={() => setGameState('gameover')}
+            onPress={handleGameOver}
             backgroundColor="#1e293b"
             position="absolute"
-            top={`${wall.top}%` as any}
-            left={`${wall.left}%` as any}
-            width={`${wall.w}%` as any}
-            height={`${wall.h}%` as any}
+            // Use Devvit PercentString types via casting
+            top={(wall.top + "%") as any}
+            left={(wall.left + "%") as any}
+            width={(wall.w + "%") as any}
+            height={(wall.h + "%") as any}
           />
         ))}
 
-        {/* Goal Area */}
-        <vstack
-          onMouseEnter={handleWin}
-          backgroundColor="#22c55e"
-          alignment="center middle"
-          position="absolute"
-          bottom={10}
-          right={10}
-          width="64px"
-          height="64px"
-        >
-          <text color="white" weight="bold">GOAL</text>
-        </vstack>
-
-        {/* Start Point Marker */}
+        {/* Start Indicator (Reference point) */}
         <vstack
           position="absolute"
-          top={50}
-          left={10}
-          width="50px"
-          height="50px"
+          top={"50%" as any}
+          left={"5%" as any}
+          width="60px"
+          height="60px"
           border="thin"
           alignment="center middle"
         >
            <text size="xsmall">START</text>
+        </vstack>
+
+        {/* Goal Area - Triggers Success on Press */}
+        <vstack
+          onPress={handleWin}
+          backgroundColor="#22c55e"
+          alignment="center middle"
+          position="absolute"
+          bottom={"10%" as any}
+          right={"10%" as any}
+          width="80px"
+          height="80px"
+          cornerRadius="medium"
+        >
+          <text color="white" weight="bold">GOAL</text>
         </vstack>
       </zstack>
     );
